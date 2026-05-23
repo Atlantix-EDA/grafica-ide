@@ -1,0 +1,48 @@
+[package]
+name        = "grafica-ide"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["James Bonanno <atlantix-eda@proton.me>"]
+description = "DSL-driven graphics IDE — Visio/draw.io-style diagramming, scriptable canvas, and node-graph editing. Composed of egui_mobius citizens: egui_grafica (canvas) + egui_quill (DSL editor) + egui_lens (logger), hosted on egui_dock."
+license     = "MIT"
+repository  = "https://github.com/Atlantix-EDA/grafica-ide"
+homepage    = "https://github.com/Atlantix-EDA/grafica-ide"
+publish     = false
+
+[dependencies]
+# egui + eframe — same versions egui_mobius pins. wgpu backend is on by
+# default; egui_grafica's GPU rendering pipeline hooks in through it.
+egui      = "0.34"
+eframe    = "0.34"
+egui_dock = "0.19"
+
+# egui_mobius citizens. Path-deps during early dev — expects egui_mobius
+# checked out as a sibling directory. Swap to git-deps from
+# saturn77/egui_mobius if you want a standalone clone build.
+egui_mobius_reactive = { path = "../egui_mobius/crates/egui_mobius_reactive" }
+egui_citizen         = { path = "../egui_mobius/crates/egui_citizen" }
+egui_lens            = { path = "../egui_mobius/crates/egui_lens" }
+egui_quill           = { path = "../egui_mobius/crates/egui_quill" }
+egui_grafica         = { path = "../egui_mobius/crates/egui_grafica", features = ["gpu"] }
+
+# Top-ribbon clock + Settings timezone picker.
+chrono    = { version = "0.4", default-features = false, features = ["clock", "std", "wasmbind"] }
+chrono-tz = { version = "0.10", default-features = false, features = ["std", "case-insensitive"] }
+
+# Cross-target monotonic clock — web_time wraps performance.now() on
+# wasm and re-exports std::time::Instant on native, same API.
+web-time = "1"
+
+# Native + wasm file picker for the Open File… action.
+rfd = "0.15"
+
+# Native-only OS / kernel / cpu / memory readout for the startup banner.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sysinfo = "0.32"
+
+# Wasm entrypoint plumbing. The desktop build ignores all of this.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures     = "0.4"
+web-sys                  = { version = "0.3", features = ["Window", "Document", "HtmlCanvasElement", "Navigator", "Screen"] }
+log                      = "0.4"
+console_error_panic_hook = "0.1"
