@@ -79,6 +79,13 @@ impl egui_dock::TabViewer for TabViewer<'_> {
         }
     }
 
+    /// Settings is always reachable from the default layout, so the
+    /// close-X is hidden — a stray click can't lose it. Every other
+    /// tab keeps the default close behaviour.
+    fn closeable(&mut self, tab: &mut Tab) -> bool {
+        !matches!(tab.kind, TabKind::Settings)
+    }
+
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Tab) {
         match tab.kind {
             TabKind::Project => self.project.show(ui, self.state),

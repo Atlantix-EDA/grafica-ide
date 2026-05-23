@@ -11,22 +11,10 @@ use crate::theme::TokyoNight;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[derive(Default)]
 pub struct RibbonState {
     pub show_about_modal: bool,
     pub show_grafica_modal: bool,
-    /// Flipped by the "Settings" click; the App focuses or opens the
-    /// Settings tab next frame.
-    pub open_settings_requested: bool,
-}
-
-impl Default for RibbonState {
-    fn default() -> Self {
-        Self {
-            show_about_modal: false,
-            show_grafica_modal: false,
-            open_settings_requested: false,
-        }
-    }
 }
 
 pub fn show(ui: &mut egui::Ui, ribbon: &mut RibbonState, settings: &Settings) {
@@ -42,14 +30,10 @@ pub fn show(ui: &mut egui::Ui, ribbon: &mut RibbonState, settings: &Settings) {
         ui.separator();
 
         // File / Info are placeholders; real menu work follows.
+        // Settings used to live here as a button — replaced by the
+        // permanent Settings tab in the Project leaf.
         ui.label(egui::RichText::new("File").color(TokyoNight::FG_DIM));
         ui.label(egui::RichText::new("Info").color(TokyoNight::FG_DIM));
-        let settings_btn = ui.add(
-            egui::Button::new(egui::RichText::new("Settings").color(TokyoNight::FG)).frame(false),
-        );
-        if settings_btn.clicked() {
-            ribbon.open_settings_requested = true;
-        }
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.add_space(4.0);

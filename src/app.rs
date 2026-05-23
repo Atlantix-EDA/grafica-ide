@@ -7,12 +7,15 @@ use egui_lens::ReactiveEventLogger;
 
 use crate::panels::{CanvasPanel, ProjectPanel};
 use crate::ribbon::RibbonState;
-use crate::settings::apply_ui_scale;
+use crate::settings::{Settings, apply_ui_scale};
 use crate::state::SharedState;
 use crate::system_info;
 use crate::tabs::{
     CANVAS_ID, EDITOR_ID, LOGGER_ID, PROJECT_ID, SETTINGS_ID, Tab, TabKind, TabViewer,
 };
+
+/// Storage key for the persisted [`Settings`] blob.
+const SETTINGS_KEY: &str = "grafica_ide_settings";
 
 pub struct App {
     dispatcher: Dispatcher,
@@ -24,7 +27,14 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Restore user settings from disk so UI scale, timezone, clock
+        // format, default directory, and grid units survive a restart.
+        let saved_settings: Settings = cc
+            .storage
+            .and_then(|s| eframe::get_value::<Settings>(s, SETTINGS_KEY))
+            .unwrap_or_default();
+
         // Citizen registration. Each registered citizen receives a
         // `CitizenState` handle whose clones share storage — panel
         // and dispatcher see the same reactive state.
@@ -37,7 +47,7 @@ impl App {
         dispatcher.activate(&CitizenId::new(EDITOR_ID));
         let _ = dispatcher.drain_messages();
 
-        let state = SharedState::new();
+        let state = SharedState::new(saved_settings.clone());
 
         // Startup banner — newest-first lens means we log details
         // then the welcome banner so the banner sits on top visually.
@@ -47,21 +57,28 @@ impl App {
         }
 
         let project = ProjectPanel::new(project_state);
-        let canvas = CanvasPanel::new(canvas_state);
+        // Seed the canvas's starting scene with the user's preferred
+        // grid units — mils by default, not pixels.
+        let canvas = CanvasPanel::new(canvas_state, saved_settings.grid_units);
 
-        // Dock layout:
+        // Dock layout — Settings sits in the Project leaf as a sibling
+        // tab so it's visible from launch (Project still active by
+        // default; one click on the Settings tab strip switches).
         //
-        //   ┌──────────┬───────────┬───────────────┐
-        //   │ Project  │  Editor   │   Canvas      │
-        //   ├──────────┴───────────┴───────────────┤
-        //   │                Logger                │
-        //   └──────────────────────────────────────┘
+        //   ┌──────────────────┬───────────┬───────────────┐
+        //   │ Project Settings │  Editor   │   Canvas      │
+        //   ├──────────────────┴───────────┴───────────────┤
+        //   │                  Logger                      │
+        //   └──────────────────────────────────────────────┘
         let mut dock_state = DockState::new(vec![Tab::new(TabKind::Editor)]);
         let surface = dock_state.main_surface_mut();
         let [editor_node, _canvas_node] =
             surface.split_right(NodeIndex::root(), 0.45, vec![Tab::new(TabKind::Canvas)]);
-        let [_, _project_node] =
-            surface.split_left(editor_node, 0.22, vec![Tab::new(TabKind::Project)]);
+        let [_, _project_node] = surface.split_left(
+            editor_node,
+            0.22,
+            vec![Tab::new(TabKind::Project), Tab::new(TabKind::Settings)],
+        );
         let [_, _logger_node] =
             surface.split_below(NodeIndex::root(), 0.72, vec![Tab::new(TabKind::Logger)]);
 
@@ -76,16 +93,6 @@ impl App {
     }
 }
 
-/// Focus the existing Settings tab if one exists; otherwise push a
-/// fresh Settings tab onto the focused leaf.
-fn open_or_focus_settings(dock_state: &mut DockState<Tab>) {
-    if let Some(path) = dock_state.find_tab_from(|t| matches!(t.kind, TabKind::Settings)) {
-        let _ = dock_state.set_active_tab(path);
-        return;
-    }
-    dock_state.push_to_focused_leaf(Tab::new(TabKind::Settings));
-}
-
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let settings_snapshot = self.state.settings.get();
@@ -94,14 +101,6 @@ impl eframe::App for App {
         ui.vertical(|ui| {
             crate::ribbon::show(ui, &mut self.ribbon, &settings_snapshot);
             ui.separator();
-
-            // The ribbon's Settings click takes effect this frame, so
-            // the dock reflects it without a one-frame delay.
-            if std::mem::take(&mut self.ribbon.open_settings_requested) {
-                open_or_focus_settings(&mut self.dock_state);
-                self.dispatcher.activate(&CitizenId::new(SETTINGS_ID));
-                let _ = self.dispatcher.drain_messages();
-            }
 
             // The dock area borrows `dock_state` mutably; the TabViewer
             // borrows other fields of self. To avoid the overlapping
@@ -131,5 +130,14 @@ impl eframe::App for App {
         // Tick the ribbon clock and let any debounced DSL eval fire
         // without requiring a fresh input event.
         ui.ctx().request_repaint_after(std::time::Duration::from_millis(500));
+    }
+
+    /// Persist user settings through eframe's storage backend. Called
+    /// by eframe periodically (default ~30s) and on app close. On
+    /// native this lands in a platform-appropriate config path; on
+    /// wasm it writes to `localStorage`.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        let settings = self.state.settings.get();
+        eframe::set_value(storage, SETTINGS_KEY, &settings);
     }
 }

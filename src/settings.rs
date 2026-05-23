@@ -1,12 +1,17 @@
-//! Application settings — UI scale, timezone, clock format.
+//! Application settings — UI scale, timezone, clock format, units.
 //!
 //! Settings live in `SharedState::settings` as a `Dynamic<Settings>`;
-//! the settings panel mutates them reactively and other surfaces
-//! (ribbon clock, ui-scale apply) observe through `.get()`.
+//! the settings panel mutates them reactively, other surfaces (ribbon
+//! clock, UI-scale apply) observe through `.get()`, and the whole
+//! struct is serialised through `eframe::Storage` so user preferences
+//! survive a restart.
 
 use eframe::egui;
+use egui_grafica::GridUnits;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     /// UI scale factor multiplied into the platform's native DPI.
     pub ui_scale: f32,
@@ -17,6 +22,10 @@ pub struct Settings {
     /// Default directory for Open File / Save dialogs. `None` →
     /// platform default (last-used or home).
     pub default_directory: Option<std::path::PathBuf>,
+    /// Preferred grid units for a *new* canvas. Loaded `.canvas` files
+    /// keep their own units; this only seeds the empty starting scene.
+    /// The canvas ribbon's per-scene units picker still overrides.
+    pub grid_units: GridUnits,
 }
 
 impl Default for Settings {
@@ -26,6 +35,8 @@ impl Default for Settings {
             user_timezone: None,
             use_24_hour_clock: false,
             default_directory: None,
+            // Mils default — engineering tooling shouldn't open in pixels.
+            grid_units: GridUnits::Mils,
         }
     }
 }

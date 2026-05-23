@@ -44,7 +44,10 @@ pub struct SharedState {
 }
 
 impl SharedState {
-    pub fn new() -> Self {
+    /// Build the shared state. `settings` is the application
+    /// preferences restored from `eframe::Storage` on app startup —
+    /// `Settings::default()` if there's no saved state yet.
+    pub fn new(settings: Settings) -> Self {
         Self {
             editor: Dynamic::new(
                 ReactiveEditorState::new()
@@ -61,13 +64,7 @@ impl SharedState {
                 colors.set_custom_color("backend", egui::Color32::from_rgb(140, 220, 140));
                 Dynamic::new(colors)
             },
-            settings: Dynamic::new(Settings::default()),
+            settings: Dynamic::new(settings),
         }
-    }
-}
-
-impl Default for SharedState {
-    fn default() -> Self {
-        Self::new()
     }
 }

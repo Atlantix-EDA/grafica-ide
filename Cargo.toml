@@ -13,7 +13,9 @@ publish     = false
 # egui + eframe — same versions egui_mobius pins. wgpu backend is on by
 # default; egui_grafica's GPU rendering pipeline hooks in through it.
 egui      = "0.34"
-eframe    = "0.34"
+# `persistence` brings in the RON-backed Storage helpers (get_value /
+# set_value) and the on-disk store the App::save hook writes through.
+eframe    = { version = "0.34", features = ["persistence"] }
 egui_dock = "0.19"
 
 # egui_mobius citizens. Path-deps during early dev — expects egui_mobius
@@ -28,6 +30,10 @@ egui_grafica         = { path = "../egui_mobius/crates/egui_grafica", features =
 # Top-ribbon clock + Settings timezone picker.
 chrono    = { version = "0.4", default-features = false, features = ["clock", "std", "wasmbind"] }
 chrono-tz = { version = "0.10", default-features = false, features = ["std", "case-insensitive"] }
+
+# Settings persistence — serialised through eframe::Storage so user
+# preferences survive a restart.
+serde = { version = "1", features = ["derive"] }
 
 # Cross-target monotonic clock — web_time wraps performance.now() on
 # wasm and re-exports std::time::Instant on native, same API.

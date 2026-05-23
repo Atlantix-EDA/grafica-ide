@@ -2,6 +2,7 @@
 //! directory.
 
 use eframe::egui;
+use egui_grafica::GridUnits;
 use egui_lens::ReactiveEventLogger;
 
 use crate::settings::{Settings, UI_SCALE_MAX, UI_SCALE_MIN, UI_SCALE_STEP};
@@ -39,6 +40,8 @@ pub fn show(ui: &mut egui::Ui, state: &SharedState) {
     egui::ScrollArea::vertical().show(ui, |ui| {
         display_section(ui, &mut settings);
         ui.add_space(16.0);
+        units_section(ui, &mut settings);
+        ui.add_space(16.0);
         time_section(ui, &mut settings);
         ui.add_space(16.0);
         files_section(ui, &mut settings);
@@ -75,6 +78,44 @@ fn display_section(ui: &mut egui::Ui, settings: &mut Settings) {
             .weak(),
         );
     });
+}
+
+fn units_section(ui: &mut egui::Ui, settings: &mut Settings) {
+    ui.group(|ui| {
+        ui.label(
+            egui::RichText::new("Units")
+                .strong()
+                .color(TokyoNight::BLUE),
+        );
+        ui.separator();
+        ui.horizontal(|ui| {
+            ui.label("Default grid units:");
+            egui::ComboBox::from_id_salt("settings_grid_units_combo")
+                .selected_text(grid_units_label(settings.grid_units))
+                .show_ui(ui, |ui| {
+                    for u in [GridUnits::Pixels, GridUnits::Mils, GridUnits::Millimeters, GridUnits::Inches] {
+                        ui.selectable_value(&mut settings.grid_units, u, grid_units_label(u));
+                    }
+                });
+        });
+        ui.label(
+            egui::RichText::new(
+                "Applied to a new canvas at startup. Loaded `.canvas` files keep their own units; \
+                 the canvas ribbon's units picker overrides per scene.",
+            )
+            .small()
+            .weak(),
+        );
+    });
+}
+
+fn grid_units_label(u: GridUnits) -> &'static str {
+    match u {
+        GridUnits::Pixels => "Pixels",
+        GridUnits::Mils => "Mils",
+        GridUnits::Millimeters => "Millimeters",
+        GridUnits::Inches => "Inches",
+    }
 }
 
 fn time_section(ui: &mut egui::Ui, settings: &mut Settings) {
@@ -188,5 +229,11 @@ fn log_diff(logger: &ReactiveEventLogger, before: &Settings, after: &Settings) {
             .map(|p| p.display().to_string())
             .unwrap_or_else(|| "(platform default)".into());
         logger.log_info(&format!("Default directory → {to}"));
+    }
+    if before.grid_units != after.grid_units {
+        logger.log_info(&format!(
+            "Default grid units → {} (applies to new canvases on next startup)",
+            grid_units_label(after.grid_units)
+        ));
     }
 }

@@ -13,7 +13,7 @@ use std::hash::{Hash, Hasher};
 
 use eframe::egui;
 use egui_citizen::{CitizenId, CitizenState};
-use egui_grafica::{CanvasCitizen, Scene};
+use egui_grafica::{CanvasCitizen, GridUnits, Scene};
 use egui_lens::ReactiveEventLogger;
 use web_time::{Duration, Instant};
 
@@ -46,8 +46,16 @@ pub struct CanvasPanel {
 }
 
 impl CanvasPanel {
-    pub fn new(citizen_state: CitizenState) -> Self {
-        let canvas = CanvasCitizen::new(Scene::default());
+    /// Build the canvas panel. `initial_units` seeds the starting
+    /// empty Scene's grid units — wired from the user's persisted
+    /// Settings so the canvas opens in their preferred units (mils by
+    /// default, not pixels). Loaded `.canvas` files override this with
+    /// their own units; the canvas ribbon's per-scene picker still
+    /// lets the user change units mid-session.
+    pub fn new(citizen_state: CitizenState, initial_units: GridUnits) -> Self {
+        let mut scene = Scene::default();
+        scene.settings.grid_units = initial_units;
+        let canvas = CanvasCitizen::new(scene);
         Self {
             citizen_id: CitizenId::new(crate::tabs::CANVAS_ID),
             citizen_state,
