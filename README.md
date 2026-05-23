@@ -79,12 +79,13 @@ routing, stable per-citizen identity for future window-detach work).
 
 ### Layout & UI
 
-- Dockable workspace via [`egui_dock`][dock]: Project · Editor · Canvas
-  across the top, Logger across the bottom. Tabs drag-rearrangeable.
+- **Dockable, drag-rearrangeable panels** via [`egui_dock`][dock]:
+  Project · Editor · Canvas across the top, Logger across the bottom.
+  Panels move freely *within* the application window — splits, tabs,
+  drag-rearrange.
 - **One-hot citizen activation** through [`egui_citizen`][citizen]'s
-  Dispatcher — at most one panel is active at a time.
-- **Stable `CitizenId`** per panel — ready for future window-detach
-  ("breakaway panels") without re-architecture.
+  Dispatcher — at most one panel is active at a time, with message
+  routing keyed to a stable `CitizenId`.
 - Top ribbon: live clock, clickable version chips, About modal,
   Hotkeys menu, Settings access.
 - **Settings tab**: UI scale (0.7×–2.0×), timezone (full chrono-tz
@@ -128,7 +129,6 @@ ribbon, settings, theme, and the full canvas feature surface above.
   colour / width / style.
 - Resizable widgets — drag handles on the selected node.
 - Bidirectional DSL ↔ canvas live sync (currently one-way: text → canvas).
-- Breakaway panels — drag a tab out into its own OS window.
 - WASM build path (scaffold present; full QA is desktop-first).
 
 ## Run
