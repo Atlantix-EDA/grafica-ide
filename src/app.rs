@@ -65,15 +65,20 @@ impl App {
         // tab so it's visible from launch (Project still active by
         // default; one click on the Settings tab strip switches).
         //
-        //   ┌──────────────────┬───────────┬───────────────┐
-        //   │ Project Settings │  Editor   │   Canvas      │
-        //   ├──────────────────┴───────────┴───────────────┤
-        //   │                  Logger                      │
-        //   └──────────────────────────────────────────────┘
+        //   ┌──────────────────┬───────────┬─────────┬───────────┐
+        //   │ Project Settings │  Editor   │ Canvas  │ Inspector │
+        //   ├──────────────────┴───────────┴─────────┴───────────┤
+        //   │                       Logger                       │
+        //   └────────────────────────────────────────────────────┘
         let mut dock_state = DockState::new(vec![Tab::new(TabKind::Editor)]);
         let surface = dock_state.main_surface_mut();
-        let [editor_node, _canvas_node] =
-            surface.split_right(NodeIndex::root(), 0.45, vec![Tab::new(TabKind::Canvas)]);
+        let [editor_node, canvas_node] =
+            surface.split_right(NodeIndex::root(), 0.40, vec![Tab::new(TabKind::Canvas)]);
+        let [_canvas_node2, _inspector_node] = surface.split_right(
+            canvas_node,
+            0.75,
+            vec![Tab::new(TabKind::Inspector)],
+        );
         let [_, _project_node] = surface.split_left(
             editor_node,
             0.22,

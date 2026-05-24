@@ -66,6 +66,13 @@ impl CanvasPanel {
         }
     }
 
+    /// Borrow the underlying canvas citizen — used by the Inspector
+    /// tab so it can read the live selection + registry without
+    /// reaching through dock state.
+    pub fn citizen(&self) -> &CanvasCitizen {
+        &self.canvas
+    }
+
     pub fn show(&mut self, ui: &mut egui::Ui, state: &SharedState) {
         // ── DSL → Scene pipeline ────────────────────────────────────
         let content = state.editor.get().content.clone();

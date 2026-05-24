@@ -18,6 +18,7 @@ pub const EDITOR_ID: &str = "editor";
 pub const CANVAS_ID: &str = "canvas";
 pub const LOGGER_ID: &str = "logger";
 pub const SETTINGS_ID: &str = "settings";
+pub const INSPECTOR_ID: &str = "inspector";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TabKind {
@@ -26,6 +27,7 @@ pub enum TabKind {
     Canvas,
     Logger,
     Settings,
+    Inspector,
 }
 
 #[derive(Clone)]
@@ -45,6 +47,7 @@ impl Tab {
             TabKind::Canvas => "Canvas",
             TabKind::Logger => "Logger",
             TabKind::Settings => "Settings",
+            TabKind::Inspector => "Inspector",
         }
     }
 
@@ -55,6 +58,7 @@ impl Tab {
             TabKind::Canvas => CANVAS_ID,
             TabKind::Logger => LOGGER_ID,
             TabKind::Settings => SETTINGS_ID,
+            TabKind::Inspector => INSPECTOR_ID,
         })
     }
 }
@@ -113,6 +117,16 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 );
             }
             TabKind::Settings => crate::panels::settings::show(ui, self.state),
+            TabKind::Inspector => {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    let citizen = self.canvas.citizen();
+                    egui_grafica::inspector::show_inspector(
+                        ui,
+                        &citizen.registry,
+                        &citizen.selection,
+                    );
+                });
+            }
         }
     }
 }
