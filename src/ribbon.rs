@@ -98,7 +98,7 @@ fn show_hotkeys_menu(ui: &mut egui::Ui) {
                 ("R", "Rotate 90° clockwise"),
                 ("Del", "Delete selection"),
                 ("Esc", "Disarm active shape tool"),
-                ("Middle-drag", "Pan the canvas viewport"),
+                ("RMB-drag", "Pan the canvas viewport (Middle-drag also works)"),
                 ("Wheel", "Zoom (cursor over canvas)"),
             ] {
                 ui.horizontal(|ui| {
