@@ -58,8 +58,13 @@ impl App {
 
         let project = ProjectPanel::new(project_state);
         // Seed the canvas's starting scene with the user's preferred
-        // grid units — mils by default, not pixels.
-        let canvas = CanvasPanel::new(canvas_state, saved_settings.grid_units);
+        // grid units + background tone — mils + Slate by default, so
+        // the IDE doesn't open in pixels on a bright-white sheet.
+        let canvas = CanvasPanel::new(
+            canvas_state,
+            saved_settings.grid_units,
+            saved_settings.default_background,
+        );
 
         // Dock layout — Settings sits in the Project leaf as a sibling
         // tab so it's visible from launch (Project still active by

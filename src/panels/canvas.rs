@@ -13,7 +13,7 @@ use std::hash::{Hash, Hasher};
 
 use eframe::egui;
 use egui_citizen::{CitizenId, CitizenState};
-use egui_grafica::{CanvasCitizen, GridUnits, Scene};
+use egui_grafica::{CanvasBackground, CanvasCitizen, GridUnits, Scene};
 use egui_lens::ReactiveEventLogger;
 use web_time::{Duration, Instant};
 
@@ -46,15 +46,20 @@ pub struct CanvasPanel {
 }
 
 impl CanvasPanel {
-    /// Build the canvas panel. `initial_units` seeds the starting
-    /// empty Scene's grid units — wired from the user's persisted
-    /// Settings so the canvas opens in their preferred units (mils by
-    /// default, not pixels). Loaded `.canvas` files override this with
-    /// their own units; the canvas ribbon's per-scene picker still
-    /// lets the user change units mid-session.
-    pub fn new(citizen_state: CitizenState, initial_units: GridUnits) -> Self {
+    /// Build the canvas panel. `initial_units` + `initial_background`
+    /// seed the starting empty Scene's units and canvas tone — both
+    /// wired from the user's persisted Settings so a fresh document
+    /// opens with their preferences. Loaded `.canvas` files override
+    /// these with their own values; the ribbon's per-scene pickers
+    /// still let the user change them mid-session.
+    pub fn new(
+        citizen_state: CitizenState,
+        initial_units: GridUnits,
+        initial_background: CanvasBackground,
+    ) -> Self {
         let mut scene = Scene::default();
         scene.settings.grid_units = initial_units;
+        scene.settings.background = initial_background;
         let canvas = CanvasCitizen::new(scene);
         Self {
             citizen_id: CitizenId::new(crate::tabs::CANVAS_ID),

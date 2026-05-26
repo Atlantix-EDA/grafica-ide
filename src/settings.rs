@@ -7,7 +7,7 @@
 //! survive a restart.
 
 use eframe::egui;
-use egui_grafica::GridUnits;
+use egui_grafica::{CanvasBackground, GridUnits};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -26,6 +26,11 @@ pub struct Settings {
     /// keep their own units; this only seeds the empty starting scene.
     /// The canvas ribbon's per-scene units picker still overrides.
     pub grid_units: GridUnits,
+    /// Default canvas background for a fresh document. Loaded
+    /// `.canvas` files keep their own background; the per-scene
+    /// picker still wins mid-session. Slate by default — a bright
+    /// white canvas at startup is jarring.
+    pub default_background: CanvasBackground,
 }
 
 impl Default for Settings {
@@ -37,6 +42,8 @@ impl Default for Settings {
             default_directory: None,
             // Mils default — engineering tooling shouldn't open in pixels.
             grid_units: GridUnits::Mils,
+            // Slate by default — easier on the eyes than bright white.
+            default_background: CanvasBackground::Slate,
         }
     }
 }

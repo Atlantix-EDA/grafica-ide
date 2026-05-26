@@ -2,7 +2,7 @@
 //! directory.
 
 use eframe::egui;
-use egui_grafica::GridUnits;
+use egui_grafica::{CanvasBackground, GridUnits};
 use egui_lens::ReactiveEventLogger;
 
 use crate::settings::{Settings, UI_SCALE_MAX, UI_SCALE_MIN, UI_SCALE_STEP};
@@ -102,6 +102,32 @@ fn units_section(ui: &mut egui::Ui, settings: &mut Settings) {
             egui::RichText::new(
                 "Applied to a new canvas at startup. Loaded `.canvas` files keep their own units; \
                  the canvas ribbon's units picker overrides per scene.",
+            )
+            .small()
+            .weak(),
+        );
+
+        ui.add_space(12.0);
+        ui.label(
+            egui::RichText::new("Appearance")
+                .strong()
+                .color(TokyoNight::BLUE),
+        );
+        ui.separator();
+        ui.horizontal(|ui| {
+            ui.label("Default canvas background:");
+            egui::ComboBox::from_id_salt("settings_default_bg_combo")
+                .selected_text(settings.default_background.label())
+                .show_ui(ui, |ui| {
+                    use CanvasBackground::*;
+                    for bg in [Light, Slate, Charcoal, Dark] {
+                        ui.selectable_value(&mut settings.default_background, bg, bg.label());
+                    }
+                });
+        });
+        ui.label(
+            egui::RichText::new(
+                "Tone of a fresh canvas at startup. Per-scene override lives on the canvas ribbon.",
             )
             .small()
             .weak(),
@@ -234,6 +260,12 @@ fn log_diff(logger: &ReactiveEventLogger, before: &Settings, after: &Settings) {
         logger.log_info(&format!(
             "Default grid units → {} (applies to new canvases on next startup)",
             grid_units_label(after.grid_units)
+        ));
+    }
+    if before.default_background != after.default_background {
+        logger.log_info(&format!(
+            "Default canvas background → {} (applies to new canvases on next startup)",
+            after.default_background.label()
         ));
     }
 }
