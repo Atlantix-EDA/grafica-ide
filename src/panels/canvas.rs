@@ -129,6 +129,24 @@ impl CanvasPanel {
 
         // ── Render the canvas ───────────────────────────────────────
         self.canvas.show(ui);
+
+        // ── Scene → DSL sync on save ───────────────────────────────
+        // After a Ctrl+S (or File → Save) the canvas hands us the
+        // freshly pretty-printed text. Push it into the editor so
+        // the source view matches what was just written to disk,
+        // and remember its hash as already-evaluated so the eval
+        // loop doesn't immediately re-parse and clobber the scene.
+        if let Some(dsl) = self.canvas.take_pending_dsl() {
+            let new_hash = hash_str(&dsl);
+            let mut editor = state.editor.get();
+            editor.content = dsl;
+            state.editor.set(editor);
+            self.last_seen_hash = new_hash;
+            self.last_evaled_hash = new_hash;
+            self.next_eval_at = None;
+            let logger = ReactiveEventLogger::with_colors(&state.log, &state.log_colors);
+            logger.log_info("Canvas → DSL: editor refreshed from saved scene.");
+        }
     }
 }
 
