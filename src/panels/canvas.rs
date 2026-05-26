@@ -79,6 +79,23 @@ impl CanvasPanel {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, state: &SharedState) {
+        // Sync port-marker preferences from the app Settings into the
+        // current scene. Only push when something actually changed so
+        // the registry doesn't snapshot a new undo step every frame.
+        {
+            let s = state.settings.get();
+            let scene_settings = self.canvas.registry.with_scene(|sc| sc.settings.clone());
+            let needs_size =
+                (scene_settings.port_marker_size - s.port_marker_size).abs() > 1e-3;
+            let needs_style = scene_settings.port_marker_style != s.port_marker_style;
+            if needs_size || needs_style {
+                let mut next = scene_settings;
+                next.port_marker_size = s.port_marker_size;
+                next.port_marker_style = s.port_marker_style;
+                self.canvas.registry.update_settings(next);
+            }
+        }
+
         // ── DSL → Scene pipeline ────────────────────────────────────
         let content = state.editor.get().content.clone();
         let hash = hash_str(&content);

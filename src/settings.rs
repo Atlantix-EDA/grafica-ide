@@ -8,6 +8,7 @@
 
 use eframe::egui;
 use egui_grafica::{CanvasBackground, GridUnits};
+use egui_grafica::model::PortMarkerStyle;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -31,6 +32,17 @@ pub struct Settings {
     /// picker still wins mid-session. Slate by default — a bright
     /// white canvas at startup is jarring.
     pub default_background: CanvasBackground,
+    /// Screen-space radius of port markers, in pixels. Synced into
+    /// the live canvas every frame so changes apply immediately.
+    #[serde(default = "default_port_marker_size")]
+    pub port_marker_size: f32,
+    /// Visual style of port markers — Disc / Ring / Cross.
+    #[serde(default)]
+    pub port_marker_style: PortMarkerStyle,
+}
+
+fn default_port_marker_size() -> f32 {
+    4.0
 }
 
 impl Default for Settings {
@@ -44,6 +56,8 @@ impl Default for Settings {
             grid_units: GridUnits::Mils,
             // Slate by default — easier on the eyes than bright white.
             default_background: CanvasBackground::Slate,
+            port_marker_size: default_port_marker_size(),
+            port_marker_style: PortMarkerStyle::Disc,
         }
     }
 }

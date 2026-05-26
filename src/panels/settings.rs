@@ -3,6 +3,7 @@
 
 use eframe::egui;
 use egui_grafica::{CanvasBackground, GridUnits};
+use egui_grafica::model::PortMarkerStyle;
 use egui_lens::ReactiveEventLogger;
 
 use crate::settings::{Settings, UI_SCALE_MAX, UI_SCALE_MIN, UI_SCALE_STEP};
@@ -128,6 +129,43 @@ fn units_section(ui: &mut egui::Ui, settings: &mut Settings) {
         ui.label(
             egui::RichText::new(
                 "Tone of a fresh canvas at startup. Per-scene override lives on the canvas ribbon.",
+            )
+            .small()
+            .weak(),
+        );
+
+        ui.add_space(12.0);
+        ui.label(
+            egui::RichText::new("Ports / Connections")
+                .strong()
+                .color(TokyoNight::BLUE),
+        );
+        ui.separator();
+        ui.horizontal(|ui| {
+            ui.label("Marker size:");
+            ui.add(
+                egui::Slider::new(&mut settings.port_marker_size, 1.0..=12.0)
+                    .fixed_decimals(1)
+                    .suffix(" px"),
+            );
+        });
+        ui.horizontal(|ui| {
+            ui.label("Marker style:");
+            egui::ComboBox::from_id_salt("settings_port_marker_style")
+                .selected_text(settings.port_marker_style.label())
+                .show_ui(ui, |ui| {
+                    for s in [
+                        PortMarkerStyle::Disc,
+                        PortMarkerStyle::Ring,
+                        PortMarkerStyle::Cross,
+                    ] {
+                        ui.selectable_value(&mut settings.port_marker_style, s, s.label());
+                    }
+                });
+        });
+        ui.label(
+            egui::RichText::new(
+                "Applies to every visible port immediately — changes flow into the active canvas this frame.",
             )
             .small()
             .weak(),
@@ -266,6 +304,18 @@ fn log_diff(logger: &ReactiveEventLogger, before: &Settings, after: &Settings) {
         logger.log_info(&format!(
             "Default canvas background → {} (applies to new canvases on next startup)",
             after.default_background.label()
+        ));
+    }
+    if (before.port_marker_size - after.port_marker_size).abs() > 1e-3 {
+        logger.log_info(&format!(
+            "Port marker size → {:.1} px",
+            after.port_marker_size
+        ));
+    }
+    if before.port_marker_style != after.port_marker_style {
+        logger.log_info(&format!(
+            "Port marker style → {}",
+            after.port_marker_style.label()
         ));
     }
 }
