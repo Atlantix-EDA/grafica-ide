@@ -108,6 +108,22 @@ impl eframe::App for App {
         let settings_snapshot = self.state.settings.get();
         apply_ui_scale(ui.ctx(), &settings_snapshot);
 
+        // egui_lens's "📊 System Info" button doesn't render the
+        // banner itself — it just sets a memory marker for the host
+        // app to act on. Poll it and re-emit the banner when found.
+        let info_requested = ui.ctx().memory_mut(|m| {
+            m.data
+                .remove_temp::<bool>(egui::Id::new("show_system_info"))
+                .unwrap_or(false)
+        });
+        if info_requested {
+            let logger = egui_lens::ReactiveEventLogger::with_colors(
+                &self.state.log,
+                &self.state.log_colors,
+            );
+            system_info::show_system_info(&logger);
+        }
+
         ui.vertical(|ui| {
             crate::ribbon::show(ui, &mut self.ribbon, &settings_snapshot);
             ui.separator();
