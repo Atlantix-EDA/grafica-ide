@@ -97,7 +97,7 @@ fn spawn_open_dialog(
 ) {
     std::thread::spawn(move || {
         let mut dialog = rfd::FileDialog::new()
-            .add_filter("Canvas DSL", &["canvas"])
+            .add_filter("graphica node", &["gnx"])
             .add_filter("All files", &["*"]);
         if let Some(dir) = default_dir {
             dialog = dialog.set_directory(dir);
@@ -123,7 +123,7 @@ fn spawn_open_dialog(
 ) {
     wasm_bindgen_futures::spawn_local(async move {
         if let Some(handle) = rfd::AsyncFileDialog::new()
-            .add_filter("Canvas DSL", &["canvas"])
+            .add_filter("graphica node", &["gnx"])
             .pick_file()
             .await
         {

@@ -52,9 +52,10 @@ impl SharedState {
             editor: Dynamic::new(
                 ReactiveEditorState::new()
                     .with_content(STARTER_DSL)
-                    // No bundled `.canvas` syntect grammar yet, so we
-                    // skip the language picker. base16-ocean.dark
-                    // pairs with the Tokyo Night chrome.
+                    // Highlight `.gnx` source with the vendored
+                    // Graphica grammar. base16-ocean.dark pairs with
+                    // the Tokyo Night chrome.
+                    .with_language("Graphica")
                     .with_theme("base16-ocean.dark"),
             ),
             log: Dynamic::new(ReactiveEventLoggerState::new()),
