@@ -122,7 +122,7 @@
 
     #text(size: 12pt)[
       #par(justify: true)[
-        GNX (Graphica Node eXchange) is a *declarative, text-first description language* for two-dimensional engineering diagrams. A `.gnx` document describes everything a viewer needs to reproduce a drawing: the drafting sheet, named style classes, primitive shapes ("nodes"), and the connections between them ("wires"). It is the on-disk format for the `egui_grafica` canvas and the editor surface for `grafica-ide`.
+        GNX (Graphica Node eXchange) is a *declarative, text-first description language* for two-dimensional engineering and technical diagrams. A `.gnx` document describes everything a viewer needs to reproduce a drawing: the drafting sheet, named style classes, primitive shapes ("nodes"), and the connections between them ("wires"). It is the on-disk format for the `egui_grafica` canvas and the editor surface for `grafica-ide`.
       ]
       #par(justify: true)[
         This document specifies GNX, including: lexical structure (line-oriented tokens, four comment styles, double-quoted strings, signed decimal numbers); top-level grammar (the `canvas { ... }` root block); style classes (re-usable overlay and port templates referenced by nodes through a `: stylename` suffix, with inline overrides); the coordinate model and page-board declaration; and the round-trip invariant — `parse(pretty(scene)) ≡ scene` for every valid scene.
@@ -177,7 +177,7 @@ It does *not* cover:
 The purpose of this document is to:
 
 - Define the syntax and semantics of the GNX language.
-- Establish the contract a conformant parser and pretty-printer must honour.
+- Establish the rules that the parser and pretty-printer must honour.
 - Pin down the lossy and lossless cases of the round-trip pipeline.
 - Provide a worked example a maintainer can read top-to-bottom and reproduce.
 - Guide downstream implementations (alternative editors, exporters, tooling).
@@ -192,11 +192,13 @@ The purpose of this document is to:
 
 The canvas world has two dominant authoring modes:
 
-+ *Visual editors with opaque formats* — Visio, draw.io, Lucid. The drawing lives inside the tool; the file is a binary or XML payload that is hostile to diff, code review, and pipeline generation.
++ *Visual editors with opaque formats* — Visio, draw.io, Lucid. The drawing lives inside the tool; the file is a binary or XML payload that is hostile to diff, code review, and pipeline generation. A human-readable format is a powerful feature, enabling a broader use and application of the graphical editor. 
 
 + *Pure-text languages with no editor surface* — TikZ, mermaid, PlantUML. Excellent for diff, but hostile to the geometric authoring real diagrams need.
 
-GNX takes a third path: a *dual-surface format* that is simultaneously a hand-readable text file and the canonical save form of a direct-manipulation canvas. The editor and the file are not coupled through serialisation tricks — they share a single grammar, parsed once and pretty-printed back the same way.
+GNX takes a third path: a *dual-surface format* that is simultaneously a hand-readable text file and the canonical save form of a direct-manipulation canvas. The editor and the file are not coupled through serialisation tricks — they share a single grammar, parsed once and pretty-printed back the same way. This 
+is perhaps the most important architectural feature of grafica-ide and is a new and evolving architecture relative to what else is available in the canvas
+drawing market. 
 
 The result:
 
@@ -218,7 +220,7 @@ GNX is intentionally small. It describes diagrams, not behaviour; styling, not s
 
 = Design Principles <principles>
 
-+ *Round-trip first* — every legal document survives `parse → pretty → parse` unchanged. Style auto-extraction and comment preservation honour this invariant.
++ *Round-trip first* — every valid document round-trips through `parse → pretty → parse` unchanged. Style auto-extraction and comment preservation honour this invariant.
 
 + *Style classes over property repetition* — when two or more nodes share the same overlay and ports, they reference a named style. The pretty-printer factors styles out automatically; the parser merges them back in on load.
 
@@ -258,6 +260,10 @@ There is exactly one file type. Reusable style libraries are not split into a se
 // ============================================================
 
 = Lexical Structure <lex>
+
+The lexical structure is important for not only definition but for future implementation of an LSP that is attached to the
+editor and would provide auto-suggest, auto-complete, keyword highlighting, and related features. 
+
 
 == Encoding <lex-encoding>
 
@@ -328,7 +334,7 @@ Strings carry arbitrary Unicode bytes between the quotes. Newlines inside a stri
 
 == Keywords <lex-keywords>
 
-Reserved at the top of their respective block contexts. They are not reserved globally — a node ID `style` is legal (though confusing).
+Reserved at the top of their respective block contexts. They are not reserved globally — a node ID `style` is valid (though confusing).
 
 #table(
   columns: (4fr, 1.6fr),
@@ -348,6 +354,8 @@ Reserved at the top of their respective block contexts. They are not reserved gl
   [`routing`, `stroke`, `arrow`, `label`], [Inside `wire`],
   [`grid`, `grid_style`, `dot_size`, `units`, `snap`, `show_grid`, `paper`, `orientation`, `background`], [Inside `settings`],
   [`value`, `anchor`, `font`, `bold`, `italic`, `color`], [Inside `text`],
+  [`type`], [Port data-type tag (Section 10)],
+  [`untyped`, `bool`, `int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`, `float`, `real`, `eng`, `generic`], [Port data-type names],
 )
 
 #pagebreak()
@@ -357,6 +365,8 @@ Reserved at the top of their respective block contexts. They are not reserved gl
 // ============================================================
 
 = Top-Level Grammar <toplevel>
+
+The top level grammar is defined in terms of an EBNF format, as shown below. 
 
 ```ebnf
 document    := comment* "canvas" string "{" canvas_body "}" ;
@@ -382,6 +392,8 @@ A `.gnx` document is anchored by its `canvas "…" { }` root. The string is a us
 // ============================================================
 
 = Settings Block <settings>
+
+The settings block is how the fundamental canvas is structured and setup - background, grid, paper size, page orientation, etc. 
 
 ```ebnf
 settings_block := "settings" "{" settings_field* "}" ;
@@ -431,7 +443,7 @@ style_block := "style" identifier "{" style_field* "}" ;
 style_field := border_field | fill_field | text_block | port_field ;
 ```
 
-A style carries any subset of the overlay surface (border, fill, text) plus a list of ports. Every field is optional — a style that contains only `fill` and `port` lines is perfectly legal.
+A style carries any subset of the overlay surface (border, fill, text) plus a list of ports. Every field is optional — a style that contains only `fill` and `port` lines is perfectly valid.
 
 == Inheritance Semantics <style-inheritance>
 
@@ -466,6 +478,8 @@ The printer also preserves any `style` block parsed but unreferenced by current 
 // ============================================================
 
 = Node Block <node>
+
+Each node is defined as shown below. Note that each node can also be called a "widget" as well. 
 
 ```ebnf
 node_block := "node" identifier ":" node_kind ( ":" identifier )? "{" node_field* "}" ;
@@ -552,19 +566,122 @@ text_anchor := "center" | "top_center" | "bottom_center"
 
 = Port Block <port>
 
+A port is a connection point on a node. It carries three pieces of information: a *direction* (in / out / bidir / untyped), a *placement* (where on the node's contour it sits), and an optional *data type* (what shape of value flows across a wire attached to it).
+
+== Grammar <port-grammar>
+
 ```ebnf
-port_field := "port" port_kind identifier port_anchor ( "type" string )? ;
-port_kind  := "in" | "out" | "bidir" | "untyped" ;
+port_field  := "port" port_dir identifier port_anchor ( "type" port_type )? ;
+port_dir    := "in" | "out" | "bidir" | "untyped" ;
 port_anchor := "north" number
              | "south" number
              | "east"  number
              | "west"  number
              | "free"  number number ;
+port_type   := "untyped"
+             | "bool"
+             | "int8" | "int16" | "int32" | "int64"
+             | "uint8" | "uint16" | "uint32" | "uint64"
+             | "float" | "real"
+             | "eng"     ( "<" string ">" )?
+             | "generic" "<" identifier ">" ;
 ```
+
+`port_dir` and `port_type` are *orthogonal*. The direction describes whether data flows in, out, both, or is unconstrained. The type describes the shape of that data. Either can be `untyped`, and the two `untyped` values are unrelated — the direction `untyped` means "I don't model direction", while the type `untyped` means "I don't model data".
+
+== Placement <port-placement>
 
 `north 0.5` means "midpoint of the top edge"; `east 0.0` is the top-right corner-ish; `west 1.0` is the bottom-left corner-ish (parametric along the face). `free fx fy` is normalised body-local coordinates — `free 0.5 0.5` is dead-centre regardless of shape.
 
-The optional `type "string"` is reserved for typed connection validation in node-graph mode. Block-diagram diagrams leave it absent.
+== Direction <port-direction>
+
+#table(
+  columns: (auto, 1fr),
+  align: (left, left),
+  table.header(
+    [*Direction*], [*Meaning*]
+  ),
+  [`in`], [Inbound port — data flows from the wire into the node.],
+  [`out`], [Outbound port — data flows from the node onto the wire.],
+  [`bidir`], [Bidirectional — data flows both ways (bus-like).],
+  [`untyped`], [Direction is not modelled. The default for block-diagram-style placements where the wires document structure rather than data flow.],
+)
+
+== Data Types <port-types>
+
+The optional `type` field tags a port with a data type. Wires connecting two typed ports are validated for type compatibility at connect time (host-level concern). Untyped ports skip validation entirely.
+
+=== Primitive Types <port-types-primitive>
+
+#table(
+  columns: (auto, 1fr),
+  align: (left, left),
+  table.header(
+    [*Type*], [*Meaning*]
+  ),
+  [`untyped`], [No type discipline. The implicit type when the `type` field is absent. Compatible with every other type at the wire level.],
+  [`bool`], [Single boolean — `true` or `false`.],
+  [`int8`, `int16`, `int32`, `int64`], [Signed two's-complement integer of the named width.],
+  [`uint8`, `uint16`, `uint32`, `uint64`], [Unsigned integer of the named width.],
+  [`float`], [IEEE 754 single-precision floating point (32-bit).],
+  [`real`], [IEEE 754 double-precision floating point (64-bit). Named `real` rather than `float64` to match the engineering / HDL convention.],
+)
+
+=== Engineering Quantities <port-types-eng>
+
+`eng` represents a physical quantity that may carry a unit string. Two forms:
+
+#table(
+  columns: (auto, 1fr),
+  align: (left, left),
+  table.header(
+    [*Form*], [*Meaning*]
+  ),
+  [`eng`], [Dimensioned real number with no declared unit. Useful when the unit is documented elsewhere or implied by context.],
+  [`eng<"unit">`], [Dimensioned real number with a unit string. The string is opaque — `"m/s"`, `"Pa"`, `"degC"`, `"rad/s^2"` — and the host validates unit compatibility however it chooses. The string follows the same lexical rule as any other GNX string.],
+)
+
+`eng<"K">` and `eng<"degC">` are distinct types — a wire between them is a unit mismatch, even though both represent temperature. Host implementations may layer conversion semantics on top; the spec only requires that the strings be compared as strings.
+
+=== Generic Types <port-types-generic>
+
+`generic<T>` declares a type variable. The identifier `T` (or any other) acts as a placeholder; the host *unifies* it across a wire at connect time. Example: a passthrough node with `port in i west 0.5 type generic<T>` and `port out o east 0.5 type generic<T>` accepts any input type, and the output is constrained to be the same type as the input.
+
+`generic<T>` is *not* a synonym for `untyped`. An `untyped` port accepts anything with no record of what was attached. A `generic<T>` port records the inferred type and propagates it through the node.
+
+#host-note[
+v0.1 hosts may treat `generic<T>` as `untyped` for the purposes of wire validation (i.e., skip unification). The syntax is reserved so that future versions can introduce type inference without a grammar change.
+]
+
+== Example <port-example>
+
+```gnx
+node adc : rect : default {
+  at 0 0
+  size 60 60
+  rotation 0
+
+  // Block-diagram defaults — direction and type both untyped.
+  port untyped n north 0.5
+  port untyped s south 0.5
+
+  // Typed signal flow.
+  port in  vref west 0.3 type eng<"V">
+  port in  ain  west 0.7 type eng<"V">
+  port out code east 0.5 type uint16
+}
+
+node passthrough : rect : default {
+  at 200 0
+  size 60 60
+  rotation 0
+
+  // Both ports share the same type variable T — the host can
+  // infer T from whichever side connects first.
+  port in  i west 0.5 type generic<T>
+  port out o east 0.5 type generic<T>
+}
+```
 
 #pagebreak()
 
@@ -763,7 +880,7 @@ This document:
 
 A conformant GNX implementation *must*:
 
-+ Accept every legal document under this specification.
++ Accept every valid document under this specification.
 + Reject documents that violate the grammar with a useful, line-numbered error.
 + Preserve every field of a scene round-trip through `parse → pretty → parse`.
 + Recognise all four comment forms on read.

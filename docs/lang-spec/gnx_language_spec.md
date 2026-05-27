@@ -135,6 +135,8 @@ Reserved at the top of their respective block contexts. They are not reserved gl
 | `routing`, `stroke`, `arrow`, `label` | Inside `wire` |
 | `grid`, `grid_style`, `dot_size`, `units`, `snap`, `show_grid`, `paper`, `orientation`, `background` | Inside `settings` |
 | `value`, `anchor`, `font`, `bold`, `italic`, `color` | Inside `text` |
+| `type` | Port data-type tag (Section 10) |
+| `untyped`, `bool`, `int8`, `int16`, `int32`, `int64`, `uint8`, `uint16`, `uint32`, `uint64`, `float`, `real`, `eng`, `generic` | Port data-type names |
 
 ---
 
@@ -279,19 +281,103 @@ text_anchor := "center" | "top_center" | "bottom_center"
 
 ### Port Block
 
+A port is a connection point on a node. It carries three pieces of information: a *direction* (in / out / bidir / untyped), a *placement* (where on the node's contour it sits), and an optional *data type* (what shape of value flows across a wire attached to it).
+
+#### Grammar
+
 ```ebnf
-port_field := "port" port_kind identifier port_anchor ( "type" string )? ;
-port_kind  := "in" | "out" | "bidir" | "untyped" ;
+port_field  := "port" port_dir identifier port_anchor ( "type" port_type )? ;
+port_dir    := "in" | "out" | "bidir" | "untyped" ;
 port_anchor := "north" number
              | "south" number
              | "east"  number
              | "west"  number
              | "free"  number number ;
+port_type   := "untyped"
+             | "bool"
+             | "int8" | "int16" | "int32" | "int64"
+             | "uint8" | "uint16" | "uint32" | "uint64"
+             | "float" | "real"
+             | "eng"     ( "<" string ">" )?
+             | "generic" "<" identifier ">" ;
 ```
+
+`port_dir` and `port_type` are **orthogonal**. The direction describes whether data flows in, out, both, or is unconstrained. The type describes the shape of that data. Either can be `untyped`, and the two `untyped` values are unrelated — the direction `untyped` means "I don't model direction"; the type `untyped` means "I don't model data".
+
+#### Placement
 
 `north 0.5` means "midpoint of the top edge"; `east 0.0` is the top-right corner-ish; `west 1.0` is the bottom-left corner-ish (parametric along the face). `free fx fy` is normalised body-local coordinates — `free 0.5 0.5` is dead-centre regardless of shape.
 
-The optional `type "string"` is reserved for typed connection validation in node-graph mode. Block-diagram diagrams leave it absent.
+#### Direction
+
+| Direction | Meaning |
+|-----------|---------|
+| `in`      | Inbound port — data flows from the wire into the node. |
+| `out`     | Outbound port — data flows from the node onto the wire. |
+| `bidir`   | Bidirectional — data flows both ways (bus-like). |
+| `untyped` | Direction is not modelled. The default for block-diagram-style placements where the wires document structure rather than data flow. |
+
+#### Data Types
+
+The optional `type` field tags a port with a data type. Wires connecting two typed ports are validated for type compatibility at connect time (host-level concern). Untyped ports skip validation entirely.
+
+**Primitive types:**
+
+| Type | Meaning |
+|------|---------|
+| `untyped` | No type discipline. The implicit type when the `type` field is absent. Compatible with every other type at the wire level. |
+| `bool` | Single boolean — `true` or `false`. |
+| `int8`, `int16`, `int32`, `int64` | Signed two's-complement integer of the named width. |
+| `uint8`, `uint16`, `uint32`, `uint64` | Unsigned integer of the named width. |
+| `float` | IEEE 754 single-precision floating point (32-bit). |
+| `real` | IEEE 754 double-precision floating point (64-bit). Named `real` rather than `float64` to match the engineering / HDL convention. |
+
+**Engineering quantities:**
+
+| Form | Meaning |
+|------|---------|
+| `eng` | Dimensioned real number with no declared unit. Useful when the unit is documented elsewhere or implied by context. |
+| `eng<"unit">` | Dimensioned real number with a unit string. The string is opaque — `"m/s"`, `"Pa"`, `"degC"`, `"rad/s^2"` — and the host validates unit compatibility however it chooses. |
+
+`eng<"K">` and `eng<"degC">` are distinct types — a wire between them is a unit mismatch, even though both represent temperature. Hosts may layer conversion semantics on top; the spec only requires the strings be compared as strings.
+
+**Generic types:**
+
+`generic<T>` declares a type variable. The identifier `T` (or any other) acts as a placeholder; the host *unifies* it across a wire at connect time. A passthrough node with `port in i west 0.5 type generic<T>` and `port out o east 0.5 type generic<T>` accepts any input type, and the output is constrained to be the same type as the input.
+
+`generic<T>` is **not** a synonym for `untyped`. An `untyped` port accepts anything with no record of what was attached. A `generic<T>` port records the inferred type and propagates it through the node.
+
+v0.1 hosts may treat `generic<T>` as `untyped` for the purposes of wire validation (i.e., skip unification). The syntax is reserved so that future versions can introduce type inference without a grammar change.
+
+#### Example
+
+```gnx
+node adc : rect : default {
+  at 0 0
+  size 60 60
+  rotation 0
+
+  // Block-diagram defaults — direction and type both untyped.
+  port untyped n north 0.5
+  port untyped s south 0.5
+
+  // Typed signal flow.
+  port in  vref west 0.3 type eng<"V">
+  port in  ain  west 0.7 type eng<"V">
+  port out code east 0.5 type uint16
+}
+
+node passthrough : rect : default {
+  at 200 0
+  size 60 60
+  rotation 0
+
+  // Both ports share the same type variable T — the host can
+  // infer T from whichever side connects first.
+  port in  i west 0.5 type generic<T>
+  port out o east 0.5 type generic<T>
+}
+```
 
 ---
 
