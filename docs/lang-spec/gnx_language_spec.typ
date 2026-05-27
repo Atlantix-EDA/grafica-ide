@@ -331,7 +331,7 @@ Strings carry arbitrary Unicode bytes between the quotes. Newlines inside a stri
 Reserved at the top of their respective block contexts. They are not reserved globally — a node ID `style` is legal (though confusing).
 
 #table(
-  columns: (auto, 1fr),
+  columns: (4fr, 1.6fr),
   align: (left, left),
   table.header(
     [*Keyword*], [*Context*]
@@ -492,7 +492,7 @@ node_field := "at" number number
 == Overlay Fields <node-overlay>
 
 #table(
-  columns: (auto, 1fr),
+  columns: (2fr, 3fr),
   align: (left, left),
   table.header(
     [*Field*], [*Description*]
@@ -600,7 +600,7 @@ Free-floating endpoints (dangling wires) exist as an in-memory editor state but 
 == Routing <wire-routing>
 
 #table(
-  columns: (auto, 1fr),
+  columns: (2fr, 3fr),
   align: (left, left),
   table.header(
     [*Routing*], [*Behaviour*]
